@@ -17,6 +17,5 @@
         <input type = "submit" name="makeGift" value = "Create gift" width="17%"/>
     </form>
 </div>
-
 </body>
 </html>

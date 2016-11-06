@@ -39,6 +39,7 @@ public class LiqueurGetInfAction implements Action {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        request.setAttribute("list", Commander.sweetList);
         request.getRequestDispatcher("/WEB-INF/createGiftForm.jsp").forward(request, response);
     }
 

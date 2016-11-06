@@ -1,9 +1,12 @@
 package database;
 
 import sweets.*;
+
+import java.io.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Created by Elena on 10/23/2016.
@@ -12,18 +15,94 @@ public class ManagementSystem {
 
     private static Connection connection = null;
 
+    String selectSweets = "SELECT idsweet, name, price, sugar, weight, type FROM sweet";
+
+    String orderBySweet = "SELECT idsweet, name, price, sugar, weight, type FROM sweet ORDER BY ";
+
+    String selectMilk = "SELECT idsweet, milk FROM butterscotch WHERE idsweet = ?";
+    String selectChocolate = "SELECT idsweet, chocolate FROM chocolate WHERE idsweet = ?";
+    String selectGelatin = "SELECT idsweet, gelatin FROM jelly WHERE idsweet = ?";
+    String selectLiqueur = "SELECT idsweet, liqueur FROM liqueur WHERE idsweet = ?";
+    String selectWafer = "SELECT idsweet, wafer FROM wafer WHERE idsweet = ?";
+
+    String selectSweetsWithParam = "SELECT idsweet, name, price, sugar, weight, type "
+                                +"FROM sweet WHERE price < ? AND sugar < ? AND weight < ?";
+
+    String idsweetOrderBy = "SELECT idsweet FROM sweet ORDER BY idsweet DESC";
+
+    String insertSweet = "INSERT INTO sweet (idsweet, name, price, sugar, weight, type)"
+            + "VALUES( ?, ?, ?, ?, ?, ? )";
+
+    String insertButterscotch = "INSERT INTO butterscotch (idsweet, milk)"
+            + "VALUES( ?, ? )";
+    String insertChocolate = "INSERT INTO chocolate (idsweet, chocolate)"
+            + "VALUES( ?, ? )";
+    String insertJelly = "INSERT INTO jelly (idsweet, gelatin)"
+            + "VALUES( ?, ? )";
+    String insertLiqueur = "INSERT INTO liqueur (idsweet, liqueur)"
+            + "VALUES( ?, ? )";
+    String insertWafer = "INSERT INTO wafer (idsweet, wafer)"
+            + "VALUES( ?, ? )";
+
+    String deleteButterscotch = "DELETE FROM butterscotch";
+    String deleteChocolate = "DELETE FROM chocolate";
+    String deleteJelly = "DELETE FROM jelly";
+    String deleteLiqueur = "DELETE FROM liqueur";
+    String deleteWafer = "DELETE FROM wafer";
+    String deleteSweet = "DELETE FROM sweet";
+
+    String selectWeight = "SELECT weight FROM sweet";
+
+    int idsweetParam = 1;
+
+    int nameParam = 2;
+    int priceParam = 3;
+    int sugarParam = 4;
+    int weightParam = 5;
+
+    int sweetInfParam = 2;
+
+    int typeParam = 6;
+
+    int priceParamSearch = 1;
+    int sugarParamSearch = 2;
+    int weightParamSearch = 3;
+
+    String fileProperties = "persistence.properties";
+
     public ManagementSystem() {
 
+        Properties props = new Properties();
+
+        Thread currentThread = Thread.currentThread();
+        ClassLoader contextClassLoader = currentThread.getContextClassLoader();
+        InputStream propertiesStream = contextClassLoader.getResourceAsStream(fileProperties);
+        try{
+            props.load(propertiesStream);
+            propertiesStream.close();
+        }
+        catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        String driver = props.getProperty("jdbc.driver");
         try {
-            Class.forName("com.mysql.jdbc.Driver");
+            Class.forName(driver);
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
             return;
         }
 
+        String connectionURL = props.getProperty("jdbc.url");
+        String username = props.getProperty("jdbc.user");
+        String password = props.getProperty("jdbc.password");
+
         try {
             connection = DriverManager
-                    .getConnection("jdbc:mysql://localhost:3306/sweetsjdb","root", "root");
+                    .getConnection(connectionURL,username, password);
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -37,7 +116,7 @@ public class ManagementSystem {
      */
     public List<Sweet> getAllSweets() throws SQLException {
         PreparedStatement stmt;
-        stmt = connection.prepareStatement("SELECT idsweet, name, price, sugar, weight, type FROM sweet");
+        stmt = connection.prepareStatement(selectSweets);
         List<Sweet> sweetList = getSweets(stmt);
         stmt.close();
         return sweetList;
@@ -52,20 +131,20 @@ public class ManagementSystem {
         List<Sweet> sweetList = new ArrayList<Sweet>();
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {
-            int id = rs.getInt(1);
-            if((rs.getString(6)).equals(SweetType.BUTTERSCOTCH.toString())) {
+            int id = rs.getInt(idsweetParam);
+            if((rs.getString(typeParam)).equals(SweetType.BUTTERSCOTCH.toString())) {
                 sweetList.add(getButterscotchDB(rs, id));
             }
-            else if(rs.getString(6).equals(SweetType.CHOCOLATE.toString())) {
+            else if(rs.getString(typeParam).equals(SweetType.CHOCOLATE.toString())) {
                 sweetList.add(getChocolateDB(rs, id));
             }
-            else if(rs.getString(6).equals(SweetType.JELLY.toString())) {
+            else if(rs.getString(typeParam).equals(SweetType.JELLY.toString())) {
                 sweetList.add(getJellyDB(rs, id));
             }
-            else if(rs.getString(6).equals(SweetType.LIQUEUR.toString())) {
+            else if(rs.getString(typeParam).equals(SweetType.LIQUEUR.toString())) {
                 sweetList.add(getLiqueurDB(rs, id));
             }
-            else if(rs.getString(6).equals(SweetType.WAFER.toString())) {
+            else if(rs.getString(typeParam).equals(SweetType.WAFER.toString())) {
                 sweetList.add(getWaferDB(rs, id));
             }
         }
@@ -79,7 +158,7 @@ public class ManagementSystem {
      */
     public List<Sweet> sortByPrice() throws SQLException {
         PreparedStatement stmt;
-        stmt = connection.prepareStatement("SELECT idsweet, name, price, sugar, weight, type FROM sweet ORDER BY price");
+        stmt = connection.prepareStatement(orderBySweet + "price");
         List<Sweet> sweetList = getSweets(stmt);
         stmt.close();
         return sweetList;
@@ -91,7 +170,7 @@ public class ManagementSystem {
      */
     public List<Sweet> sortBySugar() throws SQLException {
         PreparedStatement stmt;
-        stmt = connection.prepareStatement("SELECT idsweet, name, price, sugar, weight, type FROM sweet ORDER BY sugar");
+        stmt = connection.prepareStatement(orderBySweet + "sugar");
         List<Sweet> sweetList = getSweets(stmt);
         stmt.close();
         return sweetList;
@@ -103,7 +182,7 @@ public class ManagementSystem {
      */
     public List<Sweet> sortByWeight() throws SQLException {
         PreparedStatement stmt;
-        stmt = connection.prepareStatement("SELECT idsweet, name, price, sugar, weight, type FROM sweet ORDER BY weight");
+        stmt = connection.prepareStatement(orderBySweet + "weight");
         List<Sweet> sweetList = getSweets(stmt);
         stmt.close();
         return sweetList;
@@ -120,12 +199,12 @@ public class ManagementSystem {
         ResultSet rsButterscotch;
         PreparedStatement stmt;
 
-        stmt = connection.prepareStatement("SELECT milk FROM butterscotch WHERE idsweet = ?");
-        stmt.setInt(1, id);
+        stmt = connection.prepareStatement(selectMilk);
+        stmt.setInt(idsweetParam, id);
         rsButterscotch = stmt.executeQuery();
         if (rsButterscotch.next()) {
-            butterscotch = new Butterscotch(rs.getString(2), rs.getDouble(3),
-                    rs.getDouble(4), rs.getDouble(5), rsButterscotch.getDouble(1));
+            butterscotch = new Butterscotch(rs.getString(nameParam), rs.getDouble(priceParam),
+                    rs.getDouble(sugarParam), rs.getDouble(weightParam), rsButterscotch.getDouble(sweetInfParam));
         }
         rsButterscotch.close();
         stmt.close();
@@ -142,12 +221,12 @@ public class ManagementSystem {
         Chocolate chocolate = null;
         ResultSet rsChocolate;
         PreparedStatement stmt;
-        stmt = connection.prepareStatement("SELECT chocolate FROM chocolate WHERE idsweet = ?");
-        stmt.setInt(1, id);
+        stmt = connection.prepareStatement(selectChocolate);
+        stmt.setInt(idsweetParam, id);
         rsChocolate = stmt.executeQuery();
         if (rsChocolate.next()) {
-            chocolate = new Chocolate(rs.getString(2), rs.getDouble(3),
-                    rs.getDouble(4), rs.getDouble(5), rsChocolate.getDouble(1));
+            chocolate = new Chocolate(rs.getString(nameParam), rs.getDouble(priceParam),
+                    rs.getDouble(sugarParam), rs.getDouble(weightParam), rsChocolate.getDouble(sweetInfParam));
         }
         rsChocolate.close();
         stmt.close();
@@ -165,12 +244,12 @@ public class ManagementSystem {
         ResultSet rsJelly;
         PreparedStatement stmt;
 
-        stmt = connection.prepareStatement("SELECT gelatin FROM jelly WHERE idsweet = ?");
-        stmt.setInt(1, id);
+        stmt = connection.prepareStatement(selectGelatin);
+        stmt.setInt(idsweetParam, id);
         rsJelly = stmt.executeQuery();
         if (rsJelly.next()) {
-            jelly = new Jelly(rs.getString(2), rs.getDouble(3),
-                    rs.getDouble(4), rs.getDouble(5), rsJelly.getDouble(1));
+            jelly = new Jelly(rs.getString(nameParam), rs.getDouble(priceParam),
+                    rs.getDouble(sugarParam), rs.getDouble(weightParam), rsJelly.getDouble(sweetInfParam));
         }
         rsJelly.close();
         stmt.close();
@@ -188,12 +267,12 @@ public class ManagementSystem {
         ResultSet rsLiqueur;
         PreparedStatement stmt;
 
-        stmt = connection.prepareStatement("SELECT liqueur FROM liqueur WHERE idsweet = ?");
-        stmt.setInt(1, id);
+        stmt = connection.prepareStatement(selectLiqueur);
+        stmt.setInt(idsweetParam, id);
         rsLiqueur = stmt.executeQuery();
         if (rsLiqueur.next()) {
-            liqueur = new Liqueur(rs.getString(2), rs.getDouble(3),
-                    rs.getDouble(4), rs.getDouble(5), rsLiqueur.getDouble(1));
+            liqueur = new Liqueur(rs.getString(nameParam), rs.getDouble(priceParam),
+                    rs.getDouble(sugarParam), rs.getDouble(weightParam), rsLiqueur.getDouble(sweetInfParam));
         }
         rsLiqueur.close();
         stmt.close();
@@ -210,13 +289,12 @@ public class ManagementSystem {
         Wafer wafer = null;
         ResultSet rsWafer;
         PreparedStatement stmt;
-
-        stmt = connection.prepareStatement("SELECT wafer FROM wafer WHERE idsweet = ?");
-        stmt.setInt(1, id);
+        stmt = connection.prepareStatement(selectWafer);
+        stmt.setInt(idsweetParam, id);
         rsWafer = stmt.executeQuery();
         if (rsWafer.next()) {
-            wafer = new Wafer(rs.getString(2), rs.getDouble(3),
-                    rs.getDouble(4), rs.getDouble(5), rsWafer.getDouble(1));
+            wafer = new Wafer(rs.getString(nameParam), rs.getDouble(priceParam),
+                    rs.getDouble(sugarParam), rs.getDouble(weightParam), rsWafer.getDouble(sweetInfParam));
         }
         rsWafer.close();
         stmt.close();
@@ -232,10 +310,10 @@ public class ManagementSystem {
      */
     public List<Sweet> getSweetsWithParameters(double price, double sugar, double weight) throws SQLException {
         PreparedStatement stmt;
-        stmt = connection.prepareStatement("SELECT idsweet, name, price, sugar, weight, type FROM sweet WHERE price < ? AND sugar < ? AND weight < ?");
-        stmt.setDouble(1, price);
-        stmt.setDouble(2, sugar);
-        stmt.setDouble(3, weight);
+        stmt = connection.prepareStatement(selectSweetsWithParam);
+        stmt.setDouble(priceParamSearch, price);
+        stmt.setDouble(sugarParamSearch, sugar);
+        stmt.setDouble(weightParamSearch, weight);
 
         List<Sweet> sweetList = getSweets(stmt);
         stmt.close();
@@ -249,9 +327,9 @@ public class ManagementSystem {
     public int generateId() throws SQLException{
         int id;
         Statement stmt = connection.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT idsweet FROM sweet ORDER BY idsweet DESC ");
+        ResultSet rs = stmt.executeQuery(idsweetOrderBy);
         if(rs.next()){
-            id = rs.getInt(1) + 1;
+            id = rs.getInt(idsweetParam) + 1;
         }
         else {
             id = 1;
@@ -260,7 +338,6 @@ public class ManagementSystem {
         rs.close();
         return id;
     }
-
 
     /**
      * @param sweet
@@ -272,60 +349,48 @@ public class ManagementSystem {
 
         int id = generateId();
 
-        stmt = connection.prepareStatement("INSERT INTO sweet "
-                + "(idsweet, name, price, sugar, weight, type)"
-                + "VALUES( ?, ?, ?, ?, ?, ? )");
-        stmt.setInt(1, id);
-        stmt.setString(2, sweet.getName());
-        stmt.setDouble(3, sweet.getPrice());
-        stmt.setDouble(4, sweet.getSugar());
-        stmt.setDouble(5, sweet.getWeight());
+        stmt = connection.prepareStatement(insertSweet);
+        stmt.setInt(idsweetParam, id);
+        stmt.setString(nameParam, sweet.getName());
+        stmt.setDouble(priceParam, sweet.getPrice());
+        stmt.setDouble(sugarParam, sweet.getSugar());
+        stmt.setDouble(weightParam, sweet.getWeight());
 
 
         if((sweet.getClassName()).equals(SweetType.BUTTERSCOTCH.toString())) {
-            stmt.setString(6, SweetType.BUTTERSCOTCH.toString());
+            stmt.setString(typeParam, SweetType.BUTTERSCOTCH.toString());
             stmt.execute();
-            stmt = connection.prepareStatement("INSERT INTO butterscotch "
-                    + "(idsweet, milk)"
-                    + "VALUES( ?, ? )");
-            stmt.setInt(1, id);
-            stmt.setDouble(2, ((Butterscotch) sweet).getMilk());
+            stmt = connection.prepareStatement(insertButterscotch);
+            stmt.setInt(idsweetParam, id);
+            stmt.setDouble(sweetInfParam, ((Butterscotch) sweet).getMilk());
         }
         else if((sweet.getClassName()).equals(SweetType.CHOCOLATE.toString())) {
-            stmt.setString(6, SweetType.CHOCOLATE.toString());
+            stmt.setString(typeParam, SweetType.CHOCOLATE.toString());
             stmt.execute();
-            stmt = connection.prepareStatement("INSERT INTO chocolate "
-                    + "(idsweet, chocolate)"
-                    + "VALUES( ?, ? )");
-            stmt.setInt(1, id);
-            stmt.setDouble(2, ((Chocolate) sweet).getChocolate());
+            stmt = connection.prepareStatement(insertChocolate);
+            stmt.setInt(idsweetParam, id);
+            stmt.setDouble(sweetInfParam, ((Chocolate) sweet).getChocolate());
         }
         else if((sweet.getClassName()).equals(SweetType.JELLY.toString())) {
-            stmt.setString(6, SweetType.JELLY.toString());
+            stmt.setString(typeParam, SweetType.JELLY.toString());
             stmt.execute();
-            stmt = connection.prepareStatement("INSERT INTO jelly "
-                    + "(idsweet, gelatin)"
-                    + "VALUES( ?, ? )");
-            stmt.setInt(1, id);
-            stmt.setDouble(2, ((Jelly) sweet).getGelatin());
+            stmt = connection.prepareStatement(insertJelly);
+            stmt.setInt(idsweetParam, id);
+            stmt.setDouble(sweetInfParam, ((Jelly) sweet).getGelatin());
         }
         else if((sweet.getClassName()).equals(SweetType.LIQUEUR.toString())) {
-            stmt.setString(6, SweetType.LIQUEUR.toString());
+            stmt.setString(typeParam, SweetType.LIQUEUR.toString());
             stmt.execute();
-            stmt = connection.prepareStatement("INSERT INTO liqueur "
-                    + "(idsweet, liqueur)"
-                    + "VALUES( ?, ? )");
-            stmt.setInt(1, id);
-            stmt.setDouble(2, ((Liqueur) sweet).getLiqueur());
+            stmt = connection.prepareStatement(insertLiqueur);
+            stmt.setInt(idsweetParam, id);
+            stmt.setDouble(sweetInfParam, ((Liqueur) sweet).getLiqueur());
         }
         else if((sweet.getClassName()).equals(SweetType.WAFER.toString())) {
-            stmt.setString(6, SweetType.WAFER.toString());
+            stmt.setString(typeParam, SweetType.WAFER.toString());
             stmt.execute();
-            stmt = connection.prepareStatement("INSERT INTO wafer "
-                    + "(idsweet, wafer)"
-                    + "VALUES( ?, ? )");
-            stmt.setInt(1, id);
-            stmt.setDouble(2, ((Wafer) sweet).getWafer());
+            stmt = connection.prepareStatement(insertWafer);
+            stmt.setInt(idsweetParam, id);
+            stmt.setDouble(sweetInfParam, ((Wafer) sweet).getWafer());
         }
         stmt.execute();
         stmt.close();
@@ -336,17 +401,17 @@ public class ManagementSystem {
      */
     public void clearGift() throws SQLException {
         PreparedStatement stmt;
-        stmt = connection.prepareStatement("DELETE FROM butterscotch");
+        stmt = connection.prepareStatement(deleteButterscotch);
         stmt.execute();
-        stmt = connection.prepareStatement("DELETE FROM chocolate");
+        stmt = connection.prepareStatement(deleteChocolate);
         stmt.execute();
-        stmt = connection.prepareStatement("DELETE FROM jelly");
+        stmt = connection.prepareStatement(deleteJelly);
         stmt.execute();
-        stmt = connection.prepareStatement("DELETE FROM liqueur");
+        stmt = connection.prepareStatement(deleteLiqueur);
         stmt.execute();
-        stmt = connection.prepareStatement("DELETE FROM wafer");
+        stmt = connection.prepareStatement(deleteWafer);
         stmt.execute();
-        stmt = connection.prepareStatement("DELETE FROM sweet");
+        stmt = connection.prepareStatement(deleteSweet);
         stmt.execute();
         stmt.close();
     }
@@ -361,7 +426,7 @@ public class ManagementSystem {
         ResultSet rs;
 
         stmt = connection.createStatement();
-        rs = stmt.executeQuery("SELECT weight FROM sweet");
+        rs = stmt.executeQuery(selectWeight);
         while (rs.next()) {
             totalWeight += rs.getDouble(1);
         }

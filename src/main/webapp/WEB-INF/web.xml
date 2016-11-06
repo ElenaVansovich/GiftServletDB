@@ -9,11 +9,6 @@
     </welcome-file-list>
 
     <servlet>
-        <servlet-name>CommanderServlet</servlet-name>
-        <servlet-class>servlets.CommanderServlet</servlet-class>
-    </servlet>
-
-    <servlet>
         <servlet-name>Commander</servlet-name>
         <servlet-class>servlets.Commander</servlet-class>
     </servlet>

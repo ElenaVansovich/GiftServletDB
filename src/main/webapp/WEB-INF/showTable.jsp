@@ -1,6 +1,6 @@
 <%@ taglib prefix="sql" uri="http://java.sun.com/jsp/jstl/sql" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ page import="sweets.*" %>
-<%@ page import="servlets.CommanderServlet" %>
 <%@ page import="servlets.Commander" %>
 <%--
   Created by IntelliJ IDEA.

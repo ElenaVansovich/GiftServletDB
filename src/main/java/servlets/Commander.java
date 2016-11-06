@@ -8,6 +8,7 @@ import actions.sortActions.SortByPriceAction;
 import actions.sortActions.SortBySugarAction;
 import actions.sortActions.SortByWeightAction;
 import sweets.Sweet;
+import sweets.Wafer;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -21,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Created by user on 25.10.2016.
+ * Created by Elena on 25.10.2016.
  */
 @WebServlet("/Commander")
 public class Commander extends HttpServlet {
@@ -30,7 +31,7 @@ public class Commander extends HttpServlet {
 
     private Map<String, Action> actionMap = new HashMap<String, Action>();
 
-    ManagementSystem managementSystem = new ManagementSystem();
+    private ManagementSystem managementSystem = new ManagementSystem();
 
     public Commander(){
 
